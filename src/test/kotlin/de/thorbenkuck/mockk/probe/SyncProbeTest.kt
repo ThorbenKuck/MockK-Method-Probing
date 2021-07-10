@@ -1,9 +1,9 @@
 package de.thorbenkuck.mockk.probe
 
+import de.thorbenkuck.mockk.TestSubject
 import io.mockk.MockKException
 import io.mockk.spyk
 import org.assertj.core.api.Assertions
-import org.assertj.core.api.Assertions.assertThat
 import org.junit.jupiter.api.Test
 import org.junit.jupiter.api.assertThrows
 import java.lang.AssertionError
@@ -12,7 +12,7 @@ class SyncProbeTest {
 
     @Test
     fun `test that the probe with a non mock throws the exception`() {
-        val toProbe = Subject()
+        val toProbe = TestSubject()
 
         assertThrows<MockKException> {
             probe { toProbe.passThrough(any()) }
@@ -22,7 +22,7 @@ class SyncProbeTest {
     @Test
     fun `test that when not executed the test fail`() {
         // Arrange
-        val toProbe = spyk(Subject())
+        val toProbe = spyk(TestSubject())
         val probe = probe { toProbe.passThrough(any()) }
 
         // No Act
@@ -34,7 +34,7 @@ class SyncProbeTest {
     @Test
     fun `test with spyk in synchronized call`() {
         // Arrange
-        val toProbe = spyk(Subject())
+        val toProbe = spyk(TestSubject())
         val probe = probe { toProbe.passThrough(any()) }
 
         // Act

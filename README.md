@@ -38,7 +38,7 @@ Add the following dependency to your build automation tool:
 testImplementation 'com.github.thorbenkuck:mockk-method-probe:1.0.0'
 ```
 
-## Using the library
+# Using the library
 
 > Note: Even though most of the library is working best with spy classes, later down below there is an explanation for using custom mocks
 
@@ -57,7 +57,12 @@ class ToTest {
 }
 ```
 
-### Basic method barrier
+## MethodBarriers
+
+Barriers are a way of waiting for methods to being called and finish.
+They are simpler, more light weight and faster than probes, though provide a lower total amount of transported information.
+
+They allow analyzing execution exceptions, which is not true for all probe operations, since they require the method to return something.
 
 If you want to continue your test once a method has been called, you can utilize the barrier like this:
 
@@ -73,30 +78,11 @@ val barrier = barrier { toTest.testMethod(any()) }
 barrier.tryToTraverse()
 ```
 
-If the method is not called within 10 seconds, the test will fail. Otherwise, the test will simply continue.
+If the method is not called within 10 seconds or an exception is raised while executing the stub, the test will fail. Otherwise, the test will simply continue.
 
-### Exception handling
-
-If the tested method throws an exception throws an exception like this:
+To also continue the test, even if an exception is thrown, you can pass the argument `failOnException` to the method tryToTraverse and continue your test. For example like this:
 
 ```kotlin
-// Arrange
-val toTest = spyk(ToTest())
-val barrier = barrier { toTest.triggerError() }
-
-// Act
-thread {
-    toTest.triggerError()
-}
-
-// Assert
-barrier.tryToTraverse()
-```
-
-The method tryToTraverse will fail the test. To not do that, you can do the following:
-
-```kotlin
-// Arrange
 val toTest = spyk(ToTest())
 val barrier = barrier { toTest.triggerError() }
 
@@ -112,7 +98,7 @@ barrier.tryToTraverse(
 assertThat(barrier.raisedException()).isNotNull.isInstanceOf(IllegalStateException::class.java)
 ```
 
-You can also perform this check reactive, like this:
+This check can also be performed reactive, like this:
 
 ```kotlin
 val barrier = barrier { toTest.triggerError() }
@@ -121,11 +107,39 @@ barrier.onError {
 }
 ```
 
-> Note: The onError will be called on the test thread, to not interact with the tested code
+> Note: The onError will be called on the test thread, to not interact with the tested code.
 
-### Advanced Method Probing
+### MethodBarriers with "strict" mocks
 
-If you need more detailed information about the method (like return values or argument), you can do it like this:
+The previous examples require the tested class to either be a relaxed mock, or a spy. If you want to use a "normal" mock, you can use the `barrierFor` method instead:
+
+```kotlin
+// Arrange
+val toTest = mockk<ToTest>()
+val input = "Foo"
+val methodProbe = barrierFor { toTest.testMethod(any()) } returns "Bar"
+
+// Act
+var result: Any? = null
+thread {
+    result = toTest.testMethod(input) // Ugly way of verifying that the answer is as mocked
+}
+
+// Assert
+methodProbe.tryToTraverse() // Method has been called
+assertThat(result).isNotNull
+    .isEqualTo("Bar")
+    .isNotEqualTo(input)
+```
+
+Using `probing` instead of `probe` will return a custom version of the `MockKStubScope` called `ProbeMockKStubScope`. So you can use the normal mockk toolset and receive a MethodProbe to analyze the results.
+
+
+## MethodProbes
+
+If you need more detailed information about the method (like return values or argument), you can utilize the method probe.
+
+Other than the MethodBarrier, a MethodProbe holds more relevant information than. This introduces a little more computational complexity and operational overhead, but if you need more information you can use this function
 
 ```kotlin
 // Arrange
@@ -138,21 +152,21 @@ thread {
 }
 
 // Assert
-val argument = methodProbe.getArgument<String>(0)
+val firstArgument: String = methodProbe.getArgument(0)
 val result = methodProbe.getResult()
-assertThat(argument).isEqualTo(result)
+assertThat(firstArgument).isEqualTo(result)
 ```
 
-Calling any method on the method probe will wait until the respective information are present.
+Calling any method on the method probe will wait until the respective information is present, meaning every method also allows you to define how long it will wait.
 
-So, calling `methodProbe.getArgument<String>(0)` waits until the spied method has been called, but not necessarily until it is finished.    
+So, calling `methodProbe.getArgument(0)` waits until the spied method has been called, but not necessarily until it is finished.    
 If the method is not called in the defined timeout (default 10 seconds), the test will fail
 
 Calling `methodProbe.getResult()` on the other hand waits until the spied method finishes, which implies that no exception is raised while doing so.    
 If the method is not called or did not finish in the defined timeout (default 10 seconds), the test will fail.    
-The same is true, if the spied upon code throws any exception. This can be disabled by calling it like this: `methodProbe.getResult(failOnException = true)`
+The same is true, if the spied upon code throws any exception.
 
-### Method Probing with strict mocks
+### MethodProbes with "strict" mocks
 
 The previous examples require the tested class to either be a relaxed mock, or a spy. If you want to use a "normal" mock, you can use probing instead:
 
@@ -176,7 +190,30 @@ assertThat(result).isEqualTo(probedResult)
 
 Using `probing` instead of `probe` will return a custom version of the `MockKStubScope` called `ProbeMockKStubScope`. So you can use the normal mockk toolset and receive a MethodProbe to analyze the results.
 
-## Spring Test Support
+### MethodProbes fluent asserts
+
+When you are using MethodProbes, you can utilize AssertJ, to validate your result. For example like this:
+
+
+```kotlin
+
+ import java.util.concurrent.TimeUnit// Arrange
+val toTest = mockk<ToTest>()
+val methodProbe = probe { toTest.testMethod(any()) }
+
+// Act
+// perform the test
+
+// Assert
+methodProbe.assertThatResult()
+    .isNotNull
+methodProbe.assertThatExecutionTimeMillis()
+    .isLessThen(TimeUnit.SECONDS.toMillis(1))
+methodProbe.asserThatArguments()
+    .hasSize(1)
+```
+
+# Spring Test Support
 
 If you are using Spring and are writing integration tests utilizing mockk [(also using springmockk)](https://github.com/Ninja-Squad/springmockk), you can utilize this library to write more reliable and performant integration tests, for example like this.
 

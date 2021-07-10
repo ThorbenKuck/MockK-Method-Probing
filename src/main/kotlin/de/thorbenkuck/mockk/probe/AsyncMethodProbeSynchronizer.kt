@@ -1,101 +1,57 @@
 package de.thorbenkuck.mockk.probe
 
-import org.assertj.core.api.Assertions
+import de.thorbenkuck.mockk.FutureValue
+import java.lang.IllegalStateException
 import java.util.concurrent.CompletableFuture
-import java.util.concurrent.ExecutionException
 import java.util.concurrent.TimeUnit
-import java.util.concurrent.locks.ReentrantReadWriteLock
-import kotlin.concurrent.write
+import kotlin.test.fail
 
-class AsyncMethodProbeSynchronizer<T: Any?>(
-    private val methodResultFuture: CompletableFuture<T> = CompletableFuture(),
-    private val argumentsResultFuture: CompletableFuture<List<Any?>> = CompletableFuture()
+class AsyncMethodProbeSynchronizer<T : Any?>(
+    methodResultFuture: CompletableFuture<T>,
+    argumentsResultFuture: CompletableFuture<List<Any?>>,
+    executionTimeFuture: CompletableFuture<Long>
 ) {
 
-    init {
-        methodResultFuture.whenComplete { t, throwable ->
-            executionEnd = System.currentTimeMillis()
-            methodException = throwable
-            setMethodResult(t)
-        }
-        argumentsResultFuture.whenComplete { arguments, _ ->
-            argumentsEnd = System.currentTimeMillis()
-            setArguments(arguments)
-        }
-    }
-
-    var executionEnd: Long? = null
-        private set
-    var argumentsEnd: Long? = null
-        private set
-    var executionStart: Long? = null
-        private set
-
-    private lateinit var arguments: List<Any?>
-    private val argumentsLock = ReentrantReadWriteLock()
-    private lateinit var methodResult: ResultHolder<T>
-    private var methodException: Throwable? = null
-    private val methodsLock = ReentrantReadWriteLock()
+    private val methodResult: FutureValue<T> = FutureValue(methodResultFuture)
+    private val argumentsResult: FutureValue<List<Any?>> = FutureValue(argumentsResultFuture)
+    private val executionTime: FutureValue<Long> = FutureValue(executionTimeFuture)
 
     fun receivedMethodResult(): Boolean {
-        return ::methodResult.isInitialized
+        return methodResult.hasData()
     }
 
-    private fun setArguments(args: List<Any?>) {
-        argumentsLock.write {
-            if(!this::arguments.isInitialized) {
-                this.arguments = args
-            }
+    fun isFinished() = methodResult.isSet()
+
+    fun getExecutionTime(timeoutInSeconds: Long, timeoutErrorMessage: String): Long {
+        try {
+            return executionTime.get(timeoutInSeconds, TimeUnit.SECONDS)
+        } catch (timeoutException: Exception) {
+            fail(timeoutErrorMessage, timeoutException)
+        } catch (e: Exception) {
+            throw IllegalStateException("There should not be any exception while getting the execution time, yet here we go... Please report this bug :)", e)
         }
     }
 
-    private fun setMethodResult(t: T) {
-        methodsLock.write {
-            if(!this::methodResult.isInitialized) {
-                this.methodResult = ResultHolder(t)
-            }
+    fun getArguments(timeoutInSeconds: Long, timeoutErrorMessage: String): List<Any?> {
+        try {
+            return argumentsResult.get(timeoutInSeconds, TimeUnit.SECONDS)
+        } catch (timeoutException: Exception) {
+            fail(timeoutErrorMessage, timeoutException)
+        } catch (e: Exception) {
+            throw IllegalStateException("There should not be any exception while getting arguments, yet here we go... Please report this bug :)", e)
         }
-    }
-
-
-    fun getArguments(
-        timeoutInSeconds: Long,
-        errorMessage: String
-    ): List<Any?> {
-        if(!::arguments.isInitialized) {
-            Assertions.assertThatCode {
-                val args = argumentsResultFuture.get(timeoutInSeconds, TimeUnit.SECONDS)
-                setArguments(args)
-            }.withFailMessage(errorMessage)
-                .doesNotThrowAnyException()
-
-        }
-        return arguments
     }
 
     fun getMethodResult(
         timeoutInSeconds: Long,
-        errorMessage: String,
-        failOnException: Boolean
+        errorMessage: String
     ): T {
-        executionStart = System.currentTimeMillis()
-        if(!::methodResult.isInitialized) {
-            Assertions.assertThatCode {
-                try {
-                    val result = methodResultFuture.get(timeoutInSeconds, TimeUnit.SECONDS)
-                    setMethodResult(result)
-                } catch (executionException: ExecutionException) {
-                    methodException = executionException
-                    if(failOnException) {
-                        throw executionException
-                    }
-                }
-            }.withFailMessage(errorMessage)
-                .doesNotThrowAnyException()
-
+        try {
+            return methodResult.get(timeoutInSeconds, TimeUnit.SECONDS)
+        } catch (timeoutException: Exception) {
+            fail(errorMessage, timeoutException)
+        } catch (e: Exception) {
+            fail(errorMessage, e)
         }
-        return methodResult.content
     }
-
-    internal class ResultHolder<T : Any?>(val content: T)
 }

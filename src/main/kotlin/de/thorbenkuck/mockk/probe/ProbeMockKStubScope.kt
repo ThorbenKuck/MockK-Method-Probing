@@ -1,24 +1,24 @@
 package de.thorbenkuck.mockk.probe
 
+import allConst
 import io.mockk.*
 
-class ProbeMockKStubScope<T, B>(
-    private val stubScope: MockKStubScope<T, B>,
-    private val methodProbe: MethodProbe<T> = MethodProbe()
+/**
+ * This class is taken from the official MockK repository and enhanced, to provide the MethodProbe afterwards.
+ *
+ * @see <a href="https://github.com/mockk/mockk">Mock</a>
+ */
+class ProbeMockKStubScope<T : Any?, B : Any?>(
+    private val stubScope: MockKStubScope<T, B>
 ) {
-    infix fun answers(answer: Answer<T>): MethodProbe<T> {
-        stubScope.answers {
-            methodProbe.argumentsResultFuture.complete(args)
-            try {
-                val result = answer.answer(it)
-                methodProbe.methodResultFuture.complete(result)
 
-                result
-            } catch (e: Throwable) {
-                methodProbe.methodResultFuture.completeExceptionally(e)
-                throw e
-            }
+    infix fun answers(answer: Answer<T>): MethodProbe<T> {
+        val methodProbe: MethodProbe<T> = MethodProbe()
+
+        stubScope.setupProbe(methodProbe) {
+            answer.answer(it)
         }
+
         return methodProbe
     }
 
@@ -33,14 +33,12 @@ class ProbeMockKStubScope<T, B>(
     infix fun throws(ex: Throwable) = answers(ThrowingAnswer(ex))
 
     infix fun answers(answer: MockKAnswerScope<T, B>.(Call) -> T): MethodProbe<T> {
-        stubScope.answers(answer)
-        return methodProbe
-    }
+        val methodProbe: MethodProbe<T> = MethodProbe()
 
-    infix fun coAnswers(answer: suspend MockKAnswerScope<T, B>.(Call) -> T): MethodProbe<T> {
-        stubScope.coAnswers(answer)
+        stubScope.setupProbe(methodProbe) {
+            answer(it)
+        }
+
         return methodProbe
     }
 }
-
-internal fun <T> List<T>.allConst() = this.map { ConstantAnswer(it) }

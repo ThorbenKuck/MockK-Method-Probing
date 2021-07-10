@@ -1,33 +1,50 @@
 package de.thorbenkuck.mockk.probe
 
+import org.assertj.core.api.AbstractLongAssert
 import org.assertj.core.api.Assertions.assertThat
+import org.assertj.core.api.ListAssert
+import org.assertj.core.api.ObjectAssert
 import java.util.concurrent.CompletableFuture
-import java.util.concurrent.TimeUnit
-import kotlin.test.assertNotNull
 
+/**
+ * A MethodProbe is bound to two completable futures,
+ */
 class MethodProbe<T : Any?>(
     internal val methodResultFuture: CompletableFuture<T> = CompletableFuture(),
-    internal val argumentsResultFuture: CompletableFuture<List<Any?>> = CompletableFuture()
+    internal val argumentsResultFuture: CompletableFuture<List<Any?>> = CompletableFuture(),
+    internal val executionTimeFuture: CompletableFuture<Long> = CompletableFuture()
 ) {
 
-    private val synchronizer = AsyncMethodProbeSynchronizer(methodResultFuture, argumentsResultFuture)
+    private val synchronizer = AsyncMethodProbeSynchronizer(methodResultFuture, argumentsResultFuture, executionTimeFuture)
 
-    fun expectingTheExecutionTook(time: Long, timeUnit: TimeUnit) {
-        getResult()
-        val executionStart = assertNotNull(synchronizer.executionStart, "No execution start set")
-        val executionEnd = assertNotNull(synchronizer.executionEnd, "No execution end set")
-        val result = executionEnd - executionStart
+    fun assertThatExecutionTimeMillis(
+        timeoutInSeconds: Long = 10,
+        timeoutErrorMessage: String = "Method has not finished within $timeoutInSeconds seconds"
+    ): AbstractLongAssert<*> {
+        val executionTime = synchronizer.getExecutionTime(timeoutInSeconds, timeoutErrorMessage)
 
-        assertThat(timeUnit.toMillis(time))
-            .withFailMessage("Expected the execution to be finished in $timeUnit $time, but it took $result ${TimeUnit.MILLISECONDS}")
-            .isLessThanOrEqualTo(result)
+        return assertThat(executionTime)
+    }
+
+    fun assertThatResult(
+        timeoutInSeconds: Long = 10,
+        timeoutErrorMessage: String = "Method has not finished within $timeoutInSeconds seconds"
+    ): ObjectAssert<T> {
+        return assertThat(synchronizer.getMethodResult(timeoutInSeconds, timeoutErrorMessage))
+    }
+
+    fun assertThatArguments(
+        timeoutInSeconds: Long = 10,
+        timeoutErrorMessage: String = "Method has not finished within $timeoutInSeconds seconds"
+    ): ListAssert<Any?> {
+        return assertThat(synchronizer.getArguments(timeoutInSeconds, timeoutErrorMessage))
     }
 
     fun waitTillCalled(
         timeoutInSeconds: Long = 10,
-        errorMessage: String = "Method has not been called within $timeoutInSeconds seconds"
+        timeoutErrorMessage: String = "Method has not been called within $timeoutInSeconds seconds"
     ) {
-        synchronizer.getArguments(timeoutInSeconds, errorMessage)
+        synchronizer.getArguments(timeoutInSeconds, timeoutErrorMessage)
     }
 
     fun alreadyExecuted(): Boolean {
@@ -51,9 +68,7 @@ class MethodProbe<T : Any?>(
     fun getResult(
         timeoutInSeconds: Long = 10,
         errorMessage: String = "Method has not been called within $timeoutInSeconds seconds",
-        failOnException: Boolean = true
     ): T {
-        return synchronizer.getMethodResult(timeoutInSeconds, errorMessage, failOnException)
+        return synchronizer.getMethodResult(timeoutInSeconds, errorMessage)
     }
-
 }
