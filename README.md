@@ -2,8 +2,8 @@
 
 > Testing asynchronous methods using modern and performant means
 
-[![Build Status](https://travis-ci.org/ThorbenKuck/NetCom2.svg?branch=master)](https://travis-ci.org/ThorbenKuck/NetCom2)
-[![Maven Central](https://maven-badges.herokuapp.com/maven-central/com.github.thorbenkuck/NetCom2/badge.svg)](https://maven-badges.herokuapp.com/maven-central/com.github.thorbenkuck/NetCom2)
+[![Build Status](https://travis-ci.org/ThorbenKuck/MockK-Method-Probing.svg?branch=master)](https://travis-ci.org/ThorbenKuck/NetCom2)
+[![Maven Central](https://maven-badges.herokuapp.com/maven-central/com.github.thorbenkuck/MockK-Method-Probing/badge.svg)](https://maven-badges.herokuapp.com/maven-central/com.github.thorbenkuck/NetCom2)
 
 Mockk provides a lot of functions for mocking and spying, even integration in Spring and stuff. The only thing really missing is a way to test asynchronous code, or probing of methods in general.
 
