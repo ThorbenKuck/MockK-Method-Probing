@@ -1,0 +1,5 @@
+image: openjdk:11-jdk
+
+include:
+  - project: free-time-development/default-pipeline
+    file: .gitlab-ci-deployment-pipeline.yml
