@@ -27,7 +27,7 @@ Add the following dependency to your build automation tool:
 <dependency>
     <groupId>com.github.thorbenkuck</groupId>
     <artifactId>mockk-method-probe</artifactId>
-    <version>1.0.0</version>
+    <version>0.1.1</version>
     <scope>test</scope>
 </dependency>
 ```
@@ -35,7 +35,7 @@ Add the following dependency to your build automation tool:
 ### Gradle:
 
 ```groovy
-testImplementation 'com.github.thorbenkuck:mockk-method-probe:1.0.0'
+testImplementation 'com.github.thorbenkuck:mockk-method-probe:0.1.1'
 ```
 
 # Using the library
