@@ -1,6 +1,7 @@
 package de.thorbenkuck.mockk.probe
 
 import allConst
+import de.thorbenkuck.mockk.setupProbe
 import io.mockk.*
 
 /**

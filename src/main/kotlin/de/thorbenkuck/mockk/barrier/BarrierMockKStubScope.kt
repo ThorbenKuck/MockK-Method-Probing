@@ -1,6 +1,7 @@
 package de.thorbenkuck.mockk.barrier
 
 import allConst
+import de.thorbenkuck.mockk.setupBarrier
 import io.mockk.*
 
 /**
@@ -9,12 +10,13 @@ import io.mockk.*
  * @see <a href="https://github.com/mockk/mockk">Mock</a>
  */
 class BarrierMockKStubScope<T, B>(
+    private val expectedInvocationCount: Int,
     private val stubScope: MockKStubScope<T, B>,
     private val validator: (result: T) -> Boolean,
 ) {
 
     infix fun answers(answer: Answer<T>): MethodBarrier {
-        val barrier = MethodBarrier()
+        val barrier = MethodBarrier(expectedInvocationCount)
 
         stubScope.setupBarrier(barrier, validator) {
             answer.answer(it)
@@ -34,7 +36,7 @@ class BarrierMockKStubScope<T, B>(
     infix fun throws(ex: Throwable) = answers(ThrowingAnswer(ex))
 
     infix fun answers(answer: MockKAnswerScope<T, B>.(Call) -> T): MethodBarrier {
-        val barrier = MethodBarrier()
+        val barrier = MethodBarrier(expectedInvocationCount)
 
         stubScope.setupBarrier(barrier, validator) {
             answer(it)

@@ -1,6 +1,7 @@
 package de.thorbenkuck.mockk.barrier
 
 import org.assertj.core.api.Assertions.assertThat
+import java.lang.IllegalStateException
 import java.util.concurrent.Semaphore
 import java.util.concurrent.TimeUnit
 
@@ -41,10 +42,18 @@ import java.util.concurrent.TimeUnit
  * @see barrier
  * @see barrierFor
  */
-class MethodBarrier {
+class MethodBarrier(
+    expectedInvocationCount: Int
+) {
 
-    internal var valid: Boolean = false
-    private val semaphore: Semaphore = Semaphore(0)
+    init {
+        if(expectedInvocationCount < 1) {
+            throw IllegalStateException("At least 1 expected call has to be provided for the barrier to work")
+        }
+    }
+
+    internal var valid: Boolean = true
+    private val semaphore: Semaphore = Semaphore((-expectedInvocationCount) + 1)
     private var throwable: Throwable? = null
     private var onError: (throwable: Throwable) -> Unit = {}
 
@@ -64,6 +73,10 @@ class MethodBarrier {
     fun raisedException(): Throwable? {
         return throwable
     }
+
+    operator fun invoke(timeoutSeconds: Long = 10,
+                        notCalledMessage: String = "The expected method has not been called within $timeoutSeconds seconds",
+                        failOnException: Boolean = true) = tryToTraverse(timeoutSeconds, notCalledMessage, failOnException)
 
     fun tryToTraverse(
         timeoutSeconds: Long = 10,

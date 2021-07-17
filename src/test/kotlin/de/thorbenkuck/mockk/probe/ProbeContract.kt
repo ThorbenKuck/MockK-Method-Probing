@@ -1,6 +1,7 @@
 package de.thorbenkuck.mockk.probe
 
 import de.thorbenkuck.mockk.TestSubject
+import de.thorbenkuck.mockk.probe
 import io.mockk.every
 import io.mockk.mockk
 import org.assertj.core.api.Assertions
@@ -19,11 +20,16 @@ class ProbeContract {
 
         // Act
         val actualResult = toProbe.passThrough("Foo")
+        val secondResult = toProbe.passThrough("Foo")
 
         // Assert
-        val result = probe.getResult()
-        Assertions.assertThat(actualResult).isEqualTo(result)
-        Assertions.assertThat(result).isEqualTo("Foo")
+        probe.assertThatResult()
+            .isSameAs(secondResult)
+            .isEqualTo(actualResult)
+            .isEqualTo("Foo")
+
+        probe.assertThatArguments()
+            .isNotEmpty
     }
 
     @Test

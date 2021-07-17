@@ -1,6 +1,7 @@
 package de.thorbenkuck.mockk.barrier
 
 import de.thorbenkuck.mockk.TestSubject
+import de.thorbenkuck.mockk.barrier
 import io.mockk.spyk
 import org.junit.jupiter.api.Test
 import org.junit.jupiter.api.assertDoesNotThrow

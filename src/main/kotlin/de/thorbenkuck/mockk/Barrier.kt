@@ -1,7 +1,8 @@
-package de.thorbenkuck.mockk.barrier
+package de.thorbenkuck.mockk
 
-import io.mockk.MockKMatcherScope
-import io.mockk.every
+import de.thorbenkuck.mockk.barrier.BarrierMockKStubScope
+import de.thorbenkuck.mockk.barrier.MethodBarrier
+import io.mockk.*
 
 /**
  * Creates a barrier on a provided method call.
@@ -34,20 +35,13 @@ import io.mockk.every
  */
 fun <T : Any?> barrier(
     validator: (t: T) -> Boolean = { true },
+    expectedInvocationCount: Int = 1,
     stubBlock: MockKMatcherScope.() -> T
 ): MethodBarrier {
-    val barrier = MethodBarrier()
+    val barrier = MethodBarrier(expectedInvocationCount)
 
-    every(stubBlock) answers {
-        try {
-            val result = callOriginal()
-            barrier.valid = validator(result)
-            barrier.release()
-            result
-        } catch (e: Throwable) {
-            barrier.releaseExceptionally(e)
-            throw e
-        }
+    every(stubBlock).setupBarrier(barrier, validator) {
+        callOriginal()
     }
 
     return barrier
@@ -78,7 +72,32 @@ fun <T : Any?> barrier(
  */
 fun <T : Any?> barrierFor(
     stubBlock: MockKMatcherScope.() -> T,
+    amountOfInvocations: Int = 1,
     validator: (t: T) -> Boolean = { true }
 ): BarrierMockKStubScope<T, T> {
-    return BarrierMockKStubScope(every(stubBlock), validator)
+    if(amountOfInvocations < 1) {
+        throw IllegalArgumentException("The amount of invocations have to be at least 1")
+    }
+    return BarrierMockKStubScope(amountOfInvocations, every(stubBlock), validator)
+}
+
+/**
+ * This method sets up a barrier for a specific StubScope. This is used both in the [BarrierMockKStubScope]
+ */
+fun <T : Any?, B> MockKStubScope<T, B>.setupBarrier(
+    barrier: MethodBarrier,
+    validator: (methodResult: T) -> Boolean,
+    doCallOriginal: MockKAnswerScope<T, B>.(Call) -> T
+) {
+    answers {
+        try {
+            val result = doCallOriginal(it)
+            barrier.valid = validator(result)
+            barrier.release()
+            result
+        } catch (e: Throwable) {
+            barrier.releaseExceptionally(e)
+            throw e
+        }
+    }
 }

@@ -1,6 +1,7 @@
 package de.thorbenkuck.mockk.probe
 
 import de.thorbenkuck.mockk.TestSubject
+import de.thorbenkuck.mockk.probe
 import io.mockk.mockk
 import io.mockk.spyk
 import org.assertj.core.api.Assertions.assertThat
