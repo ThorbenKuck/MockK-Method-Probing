@@ -47,7 +47,7 @@ class MethodBarrier(
 ) {
 
     init {
-        if(expectedInvocationCount < 1) {
+        if (expectedInvocationCount < 1) {
             throw IllegalStateException("At least 1 expected call has to be provided for the barrier to work")
         }
     }
@@ -74,9 +74,11 @@ class MethodBarrier(
         return throwable
     }
 
-    operator fun invoke(timeoutSeconds: Long = 10,
-                        notCalledMessage: String = "The expected method has not been called within $timeoutSeconds seconds",
-                        failOnException: Boolean = true) = tryToTraverse(timeoutSeconds, notCalledMessage, failOnException)
+    operator fun invoke(
+        timeoutSeconds: Long = 10,
+        notCalledMessage: String = "The expected method has not been called within $timeoutSeconds seconds",
+        failOnException: Boolean = true
+    ) = tryToTraverse(timeoutSeconds, notCalledMessage, failOnException)
 
     fun tryToTraverse(
         timeoutSeconds: Long = 10,

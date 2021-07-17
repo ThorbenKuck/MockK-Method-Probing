@@ -75,7 +75,7 @@ fun <T : Any?> barrierFor(
     amountOfInvocations: Int = 1,
     validator: (t: T) -> Boolean = { true }
 ): BarrierMockKStubScope<T, T> {
-    if(amountOfInvocations < 1) {
+    if (amountOfInvocations < 1) {
         throw IllegalArgumentException("The amount of invocations have to be at least 1")
     }
     return BarrierMockKStubScope(amountOfInvocations, every(stubBlock), validator)
