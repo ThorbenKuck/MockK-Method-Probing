@@ -12,7 +12,7 @@ jobs:
     - name: Mirror + trigger CI
       uses: SvanBoxel/gitlab-mirror-and-ci-action@master
       with:
-        args: "https://gitlab.com/<namespace>/<repository>"
+        args: "https://git.thorbenkuck.de/free-time-development/mockk-method-probing"
       env:
         GITLAB_HOSTNAME: "git.thorbenkuck.de"
         GITLAB_USERNAME: "thkuck"
